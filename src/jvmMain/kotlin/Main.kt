@@ -127,7 +127,7 @@ object GUI {
             dialog.isVisible = true
             if (dialog.files != null) {
                 for (file in dialog.files) {
-                    if (file.extension == "kts") {
+                    if (file.extension == supportedExtension) {
                         if (ScriptManager.addScriptFromFile(file)) {
                             availableFiles.add(file.name)
                         } else {
@@ -140,7 +140,7 @@ object GUI {
 
         fun addNewScriptViaSaving() {
             fileDialogPopupShown = false
-            val realScriptName = "$scriptSaveName.$supportedExtension"
+            val realScriptName = "$scriptSaveName$supportedExtension"
             if (ScriptManager.addScriptFromText(
                     inputText.text,
                     filename = realScriptName
