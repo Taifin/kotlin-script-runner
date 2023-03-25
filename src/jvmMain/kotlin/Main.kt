@@ -46,7 +46,8 @@ object GUI {
         var exitCode by remember { mutableStateOf("Not executed yet") }
         var isRunning by remember { mutableStateOf(false) }
         val availableFiles = remember { mutableStateListOf<String>() }
-        var popupShown by remember { mutableStateOf(false) }
+        var fileDialogPopupShown by remember { mutableStateOf(false) }
+        var uploadErrorPopupShown by remember { mutableStateOf(false) }
         var scriptSaveName by remember { mutableStateOf("") }
         var progress by remember { mutableStateOf(0.0) }
         var estimatedTimeLeft by remember { mutableStateOf<Int?>(null) }
@@ -121,11 +122,41 @@ object GUI {
             }
         }
 
+        fun addNewScriptViaDialog() {
+            val dialog = FileDialog(null as Frame?, "Choose a file")
+            dialog.isVisible = true
+            if (dialog.files != null) {
+                for (file in dialog.files) {
+                    if (file.extension == "kts") {
+                        if (ScriptManager.addScriptFromFile(file)) {
+                            availableFiles.add(file.name)
+                        } else {
+                            uploadErrorPopupShown = true
+                        }
+                    }
+                }
+            }
+        }
+
+        fun addNewScriptViaSaving() {
+            fileDialogPopupShown = false
+            val realScriptName = "$scriptSaveName.$supportedExtension"
+            if (ScriptManager.addScriptFromText(
+                    inputText.text,
+                    filename = realScriptName
+                )
+            ) {
+                availableFiles.add(realScriptName)
+            } else {
+                uploadErrorPopupShown = true
+            }
+        }
+
         @Composable
-        if (popupShown) {
+        if (fileDialogPopupShown) {
             AlertDialog(
                 title = { Text("Please enter filename to save script") },
-                onDismissRequest = { popupShown = false },
+                onDismissRequest = { fileDialogPopupShown = false },
                 text = {
                     TextField(
                         value = scriptSaveName,
@@ -142,17 +173,7 @@ object GUI {
                         ) {
                             Button(
                                 onClick = {
-                                    popupShown = false
-                                    val realScriptName = "$scriptSaveName.$supportedExtension"
-                                    if (ScriptManager.addScriptFromText(
-                                            inputText.text,
-                                            filename = realScriptName
-                                        )
-                                    ) {
-                                        availableFiles.add(realScriptName)
-                                    } else {
-                                        // todo: error msg
-                                    }
+                                    addNewScriptViaSaving()
                                 }
                             ) {
                                 Text("Save")
@@ -165,7 +186,7 @@ object GUI {
                         ) {
                             Button(
                                 onClick = {
-                                    popupShown = false
+                                    fileDialogPopupShown = false
                                 }
                             ) {
                                 Text("Dismiss")
@@ -173,6 +194,23 @@ object GUI {
                         }
                     }
                 }
+            )
+        }
+
+        if (uploadErrorPopupShown) {
+            AlertDialog(
+                onDismissRequest = {
+                    uploadErrorPopupShown = false
+                },
+                text = { Text("Could not add script, please try again.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            uploadErrorPopupShown = false
+                        }) {
+                        Text("OK")
+                    }
+                },
             )
         }
 
@@ -184,8 +222,8 @@ object GUI {
                 TextField(
                     value = inputText,
                     onValueChange = { value ->
-                        val selection = value.selection
-                        inputText = TextFieldValue(highlighter.highlight(value.text), selection)
+                        inputText =
+                            TextFieldValue(highlighter.highlight(value.text), value.selection)
                     },
                     label = { Text("Kotlin Code") },
                     modifier = Modifier.fillMaxHeight().weight(2f).padding(start = 16.dp)
@@ -215,25 +253,13 @@ object GUI {
 
                     Row {
                         Button(
-                            onClick = { popupShown = true },
+                            onClick = { fileDialogPopupShown = true },
                             modifier = Modifier.padding(end = 16.dp)
                         ) {
                             Text("Save current")
                         }
                         Button(onClick = {
-                            val dialog = FileDialog(null as Frame?, "Choose a file")
-                            dialog.isVisible = true
-                            if (dialog.files != null) {
-                                for (file in dialog.files) {
-                                    if (file.extension == "kts") {
-                                        if (ScriptManager.addScriptFromFile(file)) {
-                                            availableFiles.add(file.name)
-                                        } else {
-                                            // TODO: error message
-                                        }
-                                    }
-                                }
-                            }
+                            addNewScriptViaDialog()
                         }, modifier = Modifier.padding(end = 16.dp)) {
                             Text("Upload new")
                         }
