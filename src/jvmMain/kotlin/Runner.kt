@@ -1,8 +1,14 @@
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.concurrent.TimeUnit
 
-class Runner(val onOutput: (String) -> Unit, val onError: (String) -> Unit, val onFinish: (Int) -> Unit) : Runnable {
-    private val fileName = "scripts/tmp.kts"
+class Runner(
+    val onOutput: (String) -> Unit,
+    val onError: (String) -> Unit,
+    val onFinish: (Int?) -> Unit,
+    private val fileName: String = "scripts/tmp.kts",
+    private val executionTimeThresholdInMs: Long = 600000 // TODO: change threshold in settings in gui
+) : Runnable {
 
     override fun run() {
         val process = ProcessBuilder("kotlinc", "-script", fileName).start()
@@ -15,12 +21,13 @@ class Runner(val onOutput: (String) -> Unit, val onError: (String) -> Unit, val 
         }
 
         val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-        while (errorReader.readLine().also{ line = it} != null) {
+        while (errorReader.readLine().also { line = it } != null) {
             onError(line!!)
         }
 
-        val exitCode = process.waitFor()
-        onFinish(exitCode)
+        val finished = process.waitFor(executionTimeThresholdInMs, TimeUnit.MILLISECONDS)
+        if (finished) onFinish(process.waitFor())
+        else onFinish(null)
     }
 
 }
