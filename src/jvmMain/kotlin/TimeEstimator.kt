@@ -11,14 +11,14 @@ object TimeEstimator {
     private val runs = LinkedList<Double>()
     private var weights = List(10) { 1.0 }
 
-    fun addRun(run: Double) {
+    private fun addRun(run: Double) {
         if (runs.size >= maxRuns) runs.pop()
         runs.push(run)
         if (runs.size in 2 until maxRuns) weights =
             (0 until maxRuns).map { index -> (if (index < maxRuns / higherWeightPercentage) weight else (1 - weight) / (runs.size - 1)) }
     }
 
-    fun estimate(): Double {
+    private fun estimate(): Double {
         var time = 0.0
         val n = runs.size.coerceAtMost(maxRuns)
         if (n == 0) return time
