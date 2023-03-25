@@ -17,7 +17,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.FileDialog
 import java.awt.Frame
@@ -27,7 +26,6 @@ object GUI {
     private var first = true
     private val highlighter = SyntaxHighlighter()
     private const val progressBarUpdateSpeed = 50L
-    private const val deleteTmpPoll = 50L
     private const val supportedExtension = ".kts"
 
     private fun ScriptManager.addTmpScript(text: String) {
@@ -36,15 +34,6 @@ object GUI {
 
     private fun ScriptManager.removeTmpScript() {
         removeFileWithScript("tmp$supportedExtension")
-    }
-
-    private fun executeWithTmpScript(text: String, conditionCallback: () -> Boolean, action: () -> Unit) {
-        ScriptManager.addTmpScript(text)
-        action()
-        CoroutineScope(Dispatchers.Default).launch {
-            while (conditionCallback()) delay(deleteTmpPoll)
-            ScriptManager.removeTmpScript()
-        }
     }
 
     @OptIn(ExperimentalMaterialApi::class)
@@ -81,6 +70,7 @@ object GUI {
         fun onFinish(c: Int?) {
             exitCode = c?.toString() ?: "Timeout"
             isRunning = false
+            ScriptManager.removeTmpScript()
         }
 
         fun updateEstimatedTimeLeft(newTime: Int?) {
@@ -101,7 +91,10 @@ object GUI {
         fun onDoubleClick(file: String) {
             TimeEstimator.clearRuns()
             inputText =
-                TextFieldValue(highlighter.highlight(ScriptManager.uploadScriptFromFile(file)), inputText.selection)
+                TextFieldValue(
+                    highlighter.highlight(ScriptManager.uploadScriptFromFile(file)),
+                    inputText.selection
+                )
         }
 
         fun prepareNewRun() {
@@ -112,11 +105,10 @@ object GUI {
         fun runScript() {
             prepareNewRun()
 
-            executeWithTmpScript(inputText.text, ::checkIfStillRunning) {
-                val runner = Runner(::onOutput, ::onError, ::onFinish)
-                Thread(runner).start()
-                isRunning = true
-            }
+            ScriptManager.addTmpScript(inputText.text)
+            val runner = Runner(::onOutput, ::onError, ::onFinish)
+            Thread(runner).start()
+            isRunning = true
 
             CoroutineScope(Dispatchers.Default).launch {
                 TimeEstimator.updateProgressDuringRun(
@@ -144,12 +136,19 @@ object GUI {
                     Row(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Button(
                                 onClick = {
                                     popupShown = false
                                     val realScriptName = "$scriptSaveName.$supportedExtension"
-                                    if (ScriptManager.addScriptFromText(inputText.text, filename = realScriptName)) {
+                                    if (ScriptManager.addScriptFromText(
+                                            inputText.text,
+                                            filename = realScriptName
+                                        )
+                                    ) {
                                         availableFiles.add(realScriptName)
                                     } else {
                                         // todo: error msg
@@ -160,7 +159,10 @@ object GUI {
                             }
                         }
 
-                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Button(
                                 onClick = {
                                     popupShown = false
@@ -212,7 +214,10 @@ object GUI {
                     }
 
                     Row {
-                        Button(onClick = { popupShown = true }, modifier = Modifier.padding(end = 16.dp)) {
+                        Button(
+                            onClick = { popupShown = true },
+                            modifier = Modifier.padding(end = 16.dp)
+                        ) {
                             Text("Save current")
                         }
                         Button(onClick = {
@@ -242,14 +247,18 @@ object GUI {
 
                 OutlinedTextField(
                     value = TextFieldValue(
-                        AnnotatedString(outputText, SpanStyle(color = Color.Black)) + AnnotatedString(
+                        AnnotatedString(
+                            outputText,
+                            SpanStyle(color = Color.Black)
+                        ) + AnnotatedString(
                             errorText,
                             SpanStyle(color = Color.Red)
                         )
                     ),
                     onValueChange = { },
                     label = { Text("Output") },
-                    modifier = Modifier.fillMaxHeight().padding(start = 16.dp, bottom = 16.dp).weight(2f)
+                    modifier = Modifier.fillMaxHeight().padding(start = 16.dp, bottom = 16.dp)
+                        .weight(2f)
                 )
 
                 Column(
