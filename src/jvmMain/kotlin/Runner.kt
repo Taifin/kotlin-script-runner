@@ -11,7 +11,7 @@ class Runner(
 ) : Runnable {
 
     override fun run() {
-        val process = ProcessBuilder("kotlinc", "-script", fileName).start()
+        val process = ProcessBuilder("cmd", "/c", "kotlinc", "-script", fileName).start()
 
         var line: String?
 
