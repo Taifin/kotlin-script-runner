@@ -16,14 +16,19 @@ class Runner(
     val onError: (String) -> Unit,
     val onFinish: (Int?) -> Unit,
     private val fileName: String = "scripts/tmp.kts",
-    private val executionTimeThresholdInMs: Long = 600000 // TODO: change threshold in settings in gui
+    private val executionTimeThresholdInMs: Long = 60000 // TODO: change threshold in settings in gui
 ) {
 
     suspend fun run() {
+        val osName = System.getProperty("os.name").lowercase()
         val process = withContext(Dispatchers.IO) {
-            ProcessBuilder("kotlinc", "-script", fileName).start()
+            if (osName.contains("win")) {
+                // windows needs different command to run kotlinc from Process
+                ProcessBuilder("cmd", "/c", "kotlinc", "-script", fileName).start()
+            } else {
+                ProcessBuilder("kotlinc", "-script", fileName).start()
+            }
         }
-
 
         withContext(Dispatchers.IO) {
             process.inputStream.bufferedReader().useLines { lines ->
