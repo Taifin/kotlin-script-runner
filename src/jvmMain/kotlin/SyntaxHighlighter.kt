@@ -3,6 +3,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import java.io.File
 
+/**
+ * Holds list of keywords to highlight given text
+ */
 class SyntaxHighlighter {
     private var keywords: Set<String>
 
