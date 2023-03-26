@@ -3,6 +3,12 @@ import java.util.*
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+/**
+ * Uses information of the previous runs of the script to estimate time of a new run.
+ * @property maxRuns determines how many runs will be considered for estimation
+ * @property higherWeightPercentage determines how many of the most recent runs will have more weight than others
+ * @property weight weight of the most recent runs
+ */
 object TimeEstimator {
     private const val maxRuns = 10
     private const val higherWeightPercentage = 10
