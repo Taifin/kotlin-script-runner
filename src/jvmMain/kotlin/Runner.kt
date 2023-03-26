@@ -1,6 +1,6 @@
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Runs script saved in [fileName] using 'kotlinc -script' command.
@@ -17,26 +17,38 @@ class Runner(
     val onFinish: (Int?) -> Unit,
     private val fileName: String = "scripts/tmp.kts",
     private val executionTimeThresholdInMs: Long = 600000 // TODO: change threshold in settings in gui
-) : Runnable {
+) {
 
-    override fun run() {
-        val process = ProcessBuilder("kotlinc", "-script", fileName).start()
-
-        var line: String?
-
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
-        while (reader.readLine().also { line = it } != null) {
-            onOutput(line!!)
+    suspend fun run() {
+        val process = withContext(Dispatchers.IO) {
+            ProcessBuilder("kotlinc", "-script", fileName).start()
         }
 
-        val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-        while (errorReader.readLine().also { line = it } != null) {
-            onError(line!!)
+
+        withContext(Dispatchers.IO) {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    withContext(Dispatchers.Default) { onOutput(line) }
+                }
+            }
+
+            process.errorStream.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    withContext(Dispatchers.Default) { onError(line) }
+                }
+            }
         }
 
-        val finished = process.waitFor(executionTimeThresholdInMs, TimeUnit.MILLISECONDS)
-        if (finished) onFinish(process.waitFor())
-        else onFinish(null)
+        val finished = withTimeoutOrNull(executionTimeThresholdInMs) {
+            withContext(Dispatchers.IO) {
+                process.waitFor()
+            }
+        } != null
+
+        withContext(Dispatchers.Default) {
+            if (finished) onFinish(process.exitValue())
+            else onFinish(null)
+        }
     }
 
 }

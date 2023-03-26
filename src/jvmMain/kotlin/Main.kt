@@ -108,8 +108,11 @@ object GUI {
 
             ScriptManager.addTmpScript(inputText.text)
             val runner = Runner(::onOutput, ::onError, ::onFinish)
-            Thread(runner).start()
             isRunning = true
+
+            CoroutineScope(Dispatchers.Default).launch {
+                runner.run()
+            }
 
             CoroutineScope(Dispatchers.Default).launch {
                 TimeEstimator.updateProgressDuringRun(
