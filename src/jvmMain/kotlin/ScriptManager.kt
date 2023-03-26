@@ -1,6 +1,8 @@
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.notExists
 
 /**
@@ -34,12 +36,13 @@ object ScriptManager {
      */
     fun addScriptFromText(content: String, filename: String): Boolean {
         val new = File("${scriptsDir}/${filename}")
-        return if (new.exists()) {
+        return try {
+            Paths.get(new.path)
             new.writeText(content)
             size++
             allFiles.add(Path.of(new.path))
             true
-        } else {
+        } catch (e: InvalidPathException) {
             false
         }
     }
