@@ -2,6 +2,15 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
+/**
+ * Runs script saved in [fileName] using 'kotlinc -script' command.
+ *
+ * @param [onOutput]: callback function that uses output stream of the process
+ * @param [onError]: callback function that uses error stream of the process
+ * @param [onFinish]: callback function that uses exit code of the process. If process was terminated due to timeout, 'null' is returned as exit code
+ * @param [fileName]: name of the file with script saved
+ * @param [executionTimeThresholdInMs]: amount of milliseconds to wait for the process if it does not produce any output
+ */
 class Runner(
     val onOutput: (String) -> Unit,
     val onError: (String) -> Unit,
